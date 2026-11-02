@@ -1,0 +1,4 @@
+.venv
+.git
+info.md
+__pycache__

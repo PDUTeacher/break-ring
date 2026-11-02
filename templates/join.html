@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+{% block title %}Вхід у гру{% endblock %}
+{% block content %}
+<div class="col-md-6 mx-auto card bg-secondary text-white p-4">
+    <h2 class="text-center mb-3">Вхід у раунд</h2>
+    {% if error %}
+        <div class="alert alert-danger">{{ error }}</div>
+    {% endif %}
+    <form action="{{ url_for('join') }}" method="POST">
+        <div class="mb-3">
+            <label class="form-label">Код гри (Кімнати)</label>
+            <input type="text" name="room_code" class="form-control form-control-lg text-uppercase fw-bold" placeholder="Наприклад: A1B2" value="{{ room_code or '' }}" required>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Ваше ім'я</label>
+            <input type="text" name="name" class="form-control form-control-lg" placeholder="Введіть ім'я" required>
+        </div>
+        <button type="submit" class="btn btn-primary w-100 btn-lg">Приєднатися</button>
+    </form>
+</div>
+{% endblock %}

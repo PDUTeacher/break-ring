@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+{% block title %}Панель Адміністратора{% endblock %}
+{% block content %}
+<div class="text-center mb-4">
+    <button id="createGameBtn" class="btn btn-primary btn-lg">Створити нову сесію гри</button>
+</div>
+
+<div id="adminControls" class="d-none">
+    <div class="card bg-secondary text-white p-4 mb-4">
+        <h2 class="mb-3">Керування сесією: <span id="currentRoomCode" class="text-warning"></span></h2>
+        <div class="d-flex gap-3 align-items-center mb-3">
+            <label for="durationInput" class="form-label mb-0 fs-5">Таймер (сек):</label>
+            <input type="number" id="durationInput" class="form-control form-control-lg w-25" value="30" min="5" max="120">
+            <button id="startBtn" class="btn btn-success btn-lg">СТАРТ</button>
+            <button id="continueBtn" class="btn btn-danger btn-lg">ПРОДОВЖИТИ</button>            
+            <button id="resetBtn" class="btn btn-warning btn-lg text-dark">СКИНИТИ СТАН</button>
+        </div>
+    </div>
+
+    <div class="card bg-secondary text-white p-4">
+        <h2>Гравці у кімнаті</h2>
+        <ul id="adminPlayerList" class="list-group list-group-flush fs-5 mt-2">
+        </ul>
+    </div>
+</div>
+{% endblock %}

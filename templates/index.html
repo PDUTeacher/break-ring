@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+{% block title %}Головне Табло{% endblock %}
+{% block content %}
+<div id="boardRoomSelect" class="col-md-6 mx-auto text-center card bg-secondary p-4">
+    <h3>Підключення</h3>
+    <div class="input-group my-3">
+        <input type="text" id="boardRoomInput" class="form-control form-control-lg text-uppercase" placeholder="Введіть код кімнати">
+        <button id="connectBoardBtn" class="btn btn-success btn-lg">Підключити</button>
+    </div>
+    <div class="card bg-dark border-light p-3 mt-2">
+        <div class="form-check d-flex justify-content-center align-items-center">
+            <input type="checkbox" id="connectAsPlayer" class="form-check-input me-2">
+            <label for="connectAsPlayer" class="form-check-label fs-5">Підключитись як гравець</label>
+        </div>
+    </div>
+</div>
+
+<div id="mainBoardContainer" class="d-none">
+    <div class="text-center mb-4">
+        <div class="badge bg-secondary fs-4">Код кімнати: <span id="displayRoomCode"></span></div>
+        <h1 class="display-3 fw-bold">ГОЛОВНЕ ТАБЛО</h1>
+        <div class="card bg-black border border-5 border-dark rounded-4 shadow-lg p-3 mb-3 mx-auto" style="max-width: 420px;">
+            <div class="text-uppercase small text-secondary">секунд</div>
+            <div id="timerDisplay" class="fw-bold font-monospace text-danger lh-1 my-2" style="font-size: 9rem;">00</div>
+        </div>
+        <div id="winnerBanner" class="alert alert-warning fs-2 p-3 d-none border-4">
+            ПЕРШИМ НАТИСНУВ: <span id="winnerName" class="fw-bold text-uppercase"></span>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8 mx-auto">
+            <div class="card bg-secondary">
+                <div class="card-header fs-4 fw-bold">Гравці в мережі (<span id="playerCount">0</span>)</div>
+                <ul id="playerList" class="list-group list-group-flush fs-5">
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<audio id="buzzAudio" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" preload="auto"></audio>
+{% endblock %}

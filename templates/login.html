@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+{% block title %}Вхід для Адміністратора{% endblock %}
+{% block content %}
+<div class="col-md-4 mx-auto card bg-secondary text-white p-4">
+    <h3 class="text-center mb-3">Вхід Адміна</h3>
+    <form action="{{ url_for('login') }}" method="POST">
+        <div class="mb-3">
+            <label class="form-label">Пароль</label>
+            <input type="password" name="password" class="form-control" required>
+        </div>
+        <button type="submit" class="btn btn-primary w-100">Увійти</button>
+    </form>
+</div>
+{% endblock %}
