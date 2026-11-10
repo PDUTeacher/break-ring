@@ -1,6 +1,13 @@
 document.addEventListener('DOMContentLoaded', () => {
     const socket = io();
 
+    socket.on('error', (data) => {
+        alert(data.message || 'Виникла помилка авторизації.');
+        if (data.message && data.message.includes('адміністратор')) {
+            window.location.href = '/login';
+        }
+    });
+    
     // ==========================================
     // 1. ГОЛОВНЕ ТАБЛО (index.html)
     // ==========================================
