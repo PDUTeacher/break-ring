@@ -1,7 +1,7 @@
 import random
 import time
 import string
-from flask import Flask, render_template, request, session, redirect, url_for
+from flask import Flask, abort, render_template, request, session, redirect, url_for
 from flask_socketio import SocketIO, emit, join_room, leave_room
 
 app = Flask(__name__)
@@ -18,6 +18,34 @@ socketio = SocketIO(app, cors_allowed_origins="*")
 # }
 games = {}
 
+SOUND_OPTIONS = {
+    '2869': {
+        'label': 'Сигнал 1',
+        'url': 'https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3',
+    },
+    '1647': {
+        'label': 'Сигнал 2',
+        'url': 'https://assets.mixkit.co/active_storage/sfx/1647/1647-preview.mp3',
+    },
+    '954': {
+        'label': 'Сигнал 3',
+        'url': 'https://assets.mixkit.co/active_storage/sfx/954/954-preview.mp3',
+    },
+    '109': {
+        'label': 'Сигнал 4',
+        'url': 'https://assets.mixkit.co/active_storage/sfx/109/109-preview.mp3',
+    },
+    '619': {
+        'label': 'Сигнал 5',
+        'url': 'https://assets.mixkit.co/active_storage/sfx/619/619-preview.mp3',
+    },    
+    '939': {
+        'label': 'Сигнал 6',
+        'url': 'https://assets.mixkit.co/active_storage/sfx/939/939-preview.mp3',
+    },
+}
+DEFAULT_SOUND_ID = '2869'
+
 
 def generate_room_code(length=6):
     """Генерує унікальний цифровий код кімнати."""
@@ -28,11 +56,19 @@ def generate_room_code(length=6):
             return code
 
 
+def _is_admin():
+    return bool(session.get('is_admin'))
+
+
 # --- Routes ---
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    return render_template(
+        'index.html',
+        sound_options=SOUND_OPTIONS,
+        default_sound_id=DEFAULT_SOUND_ID,
+    )
 
 
 @app.route('/join', methods=['GET', 'POST'])
@@ -73,10 +109,18 @@ def login():
 
 
 @app.route('/admin')
-def admin():
-    if not session.get('is_admin'):
+@app.route('/admin/<room_code>')
+def admin(room_code=None):
+    if not _is_admin():
         return redirect(url_for('login'))
-    return render_template('admin.html')
+    if room_code is not None and room_code not in games:
+        abort(404)
+    return render_template(
+        'admin.html',
+        room_code=room_code,
+        sound_options=SOUND_OPTIONS,
+        default_sound_id=DEFAULT_SOUND_ID,
+    )
 
 
 # --- SocketIO Events ---
@@ -84,6 +128,10 @@ def admin():
 @socketio.on('admin_create_game')
 def handle_create_game():
     """Адмін створює нову гру і отримує код кімнати."""
+    if not _is_admin():
+        emit('error', {'message': 'Необхідно увійти як адміністратор.'})
+        return
+
     room_code = generate_room_code()
     games[room_code] = {
         "players": {},
@@ -92,7 +140,8 @@ def handle_create_game():
         "excluded": set(),
         "remaining": 0,
         "round_end": 0,
-        "is_round_active": False
+        "is_round_active": False,
+        "sound_id": DEFAULT_SOUND_ID,
     }
     join_room(room_code)
     session['room_code'] = room_code
@@ -108,6 +157,10 @@ def handle_join_room_request(data):
     role = data.get('role')  # 'player', 'admin', 'board'
     name = data.get('name')
 
+    if role == 'admin' and not _is_admin():
+        emit('error', {'message': 'Необхідно увійти як адміністратор.'})
+        return
+
     if room_code not in games:
         emit('error', {'message': 'Кімнату не знайдено'})
         return
@@ -122,9 +175,51 @@ def handle_join_room_request(data):
 
     # Миттєво надсилаємо початковий стан новопідключеному клієнту
     emit('players_updated', list(game['players'].values()), room=room_code)
+
+    if role == 'admin':
+        remaining = (
+            max(0, int(game['round_end'] - time.time() + 0.5))
+            if game['round_end']
+            else game['remaining']
+        )
+        emit('admin_state', {
+            'round_active': game['is_round_active'] and remaining > 0,
+            'remaining': remaining,
+            'has_started': (
+                game['is_round_active']
+                or game['active_player'] is not None
+                or game['round_end'] > 0
+            ),
+            'has_winner': game['active_player'] is not None,
+            'sound_id': game['sound_id'],
+        }, room=sid)
+
+    if role == 'board':
+        emit('sound_selected', {'sound_id': game['sound_id']}, room=sid)
     
     if game['active_player']:
         emit('button_pressed_first', {'winner': game['active_player']}, room=sid)
+
+
+@socketio.on('admin_set_sound')
+def handle_admin_set_sound(data):
+    if not _is_admin():
+        emit('error', {'message': 'Необхідно увійти як адміністратор.'})
+        return
+
+    room_code = data.get('room_code')
+    sound_id = data.get('sound_id')
+    if (
+        not isinstance(room_code, str)
+        or room_code not in games
+        or not isinstance(sound_id, str)
+        or sound_id not in SOUND_OPTIONS
+    ):
+        emit('error', {'message': 'Невідомий код кімнати або звук.'})
+        return
+
+    games[room_code]['sound_id'] = sound_id
+    emit('sound_selected', {'sound_id': sound_id}, room=room_code)
 
 
 @socketio.on('disconnect')
@@ -145,7 +240,12 @@ def handle_press_button(data):
 
     if room_code in games:
         game = games[room_code]
-        if game['is_round_active'] and game['active_player'] is None and sid not in game['excluded']:
+        if (
+            game['is_round_active']
+            and time.time() < game['round_end']
+            and game['active_player'] is None
+            and sid not in game['excluded']
+        ):
             player = game['players'].get(sid)
             if player:
                 game['active_player'] = player['name']
@@ -160,6 +260,10 @@ def handle_press_button(data):
 
 @socketio.on('admin_start')
 def handle_admin_start(data):
+    if not _is_admin():
+        emit('error', {'message': 'Необхідно увійти як адміністратор.'})
+        return
+
     room_code = data.get('room_code')
     duration = int(data.get('duration', 30))
 
@@ -170,16 +274,22 @@ def handle_admin_start(data):
         game['active_sid'] = None
         game['excluded'] = set()
         game['round_end'] = time.time() + duration
+        game['remaining'] = duration
         emit('round_started', {'duration': duration}, room=room_code)
 
 
 @socketio.on('admin_continue')
 def handle_admin_continue(data):
     """Гравець натиснув, але не відповів: відкриваємо кнопку іншим, поки є час."""
+    if not _is_admin():
+        emit('error', {'message': 'Необхідно увійти як адміністратор.'})
+        return
+
     room_code = data.get('room_code')
 
     if room_code in games:
         game = games[room_code]
+        game['remaining'] = max(0, int(game['round_end'] - time.time() + 0.5))
         if game['active_player'] is None or game['remaining'] <= 0:
             return
         game['excluded'].add(game['active_sid'])
@@ -196,6 +306,10 @@ def handle_admin_continue(data):
 
 @socketio.on('admin_reset')
 def handle_admin_reset(data):
+    if not _is_admin():
+        emit('error', {'message': 'Необхідно увійти як адміністратор.'})
+        return
+
     room_code = data.get('room_code')
 
     if room_code in games:
@@ -204,11 +318,17 @@ def handle_admin_reset(data):
         game['active_player'] = None
         game['active_sid'] = None
         game['excluded'] = set()
+        game['remaining'] = 0
+        game['round_end'] = 0
         emit('round_reset', room=room_code)
 
 
 @socketio.on('admin_kick')
 def handle_admin_kick(data):
+    if not _is_admin():
+        emit('error', {'message': 'Необхідно увійти як адміністратор.'})
+        return
+
     room_code = data.get('room_code')
     target_sid = data.get('sid')
 

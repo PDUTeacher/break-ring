@@ -1,43 +1,80 @@
 {% extends 'base.html' %}
 {% block title %}Головне Табло{% endblock %}
 {% block content %}
-<div id="boardRoomSelect" class="col-md-6 mx-auto text-center card bg-secondary p-4">
-    <h3>Підключення</h3>
-    <div class="input-group my-3">
-        <input type="text" id="boardRoomInput" class="form-control form-control-lg text-uppercase" placeholder="Введіть код кімнати">
-        <button id="connectBoardBtn" class="btn btn-success btn-lg">Підключити</button>
-    </div>
-    <div class="card bg-dark border-light p-3 mt-2">
-        <div class="form-check d-flex justify-content-center align-items-center">
-            <input type="checkbox" id="connectAsPlayer" class="form-check-input me-2">
-            <label for="connectAsPlayer" class="form-check-label fs-5">Підключитись як гравець</label>
-        </div>
-    </div>
-</div>
+<main class="py-2 py-md-4">
+    <header class="text-center mb-3 mb-md-4">
+        <h1 class="display-5 fw-bold mb-2">Ігрове табло</h1>
+        <hr>
+    </header>
+    <!-- Room selection section -->
+    <section id="boardRoomSelect" class="card bg-body-tertiary border-secondary shadow-lg p-3 p-md-4 mx-auto" style="max-width: 1024px;" aria-labelledby="connectHeading">
+        <div class="row g-4 align-items-center">
+            <div class="col-12 col-md-5">
+                <span class="badge text-bg-secondary mb-2">Крок 1</span>
+                <h2 id="connectHeading" class="h3 fw-bold">Приєднатися до гри</h2>
+                <p class="text-secondary mb-0">Введіть код кімнати, який надав ведучий.</p>
+            </div>
 
-<div id="mainBoardContainer" class="d-none">
-    <div class="text-center mb-4">
-        <div class="badge bg-secondary fs-4">Код кімнати: <span id="displayRoomCode"></span></div>
-        <h1 class="display-3 fw-bold">ГОЛОВНЕ ТАБЛО</h1>
-        <div class="card bg-black border border-5 border-dark rounded-4 shadow-lg p-3 mb-3 mx-auto" style="max-width: 420px;">
-            <div class="text-uppercase small text-secondary">секунд</div>
-            <div id="timerDisplay" class="fw-bold font-monospace text-danger lh-1 my-2" style="font-size: 9rem;">00</div>
-        </div>
-        <div id="winnerBanner" class="alert alert-warning fs-2 p-3 d-none border-4">
-            ПЕРШИМ НАТИСНУВ: <span id="winnerName" class="fw-bold text-uppercase"></span>
-        </div>
-    </div>
-
-    <div class="row">
-        <div class="col-md-8 mx-auto">
-            <div class="card bg-secondary">
-                <div class="card-header fs-4 fw-bold">Гравці в мережі (<span id="playerCount">0</span>)</div>
-                <ul id="playerList" class="list-group list-group-flush fs-5">
-                </ul>
+            <div class="col-12 col-md-7">
+                <label for="boardRoomInput" class="form-label">Код кімнати</label>
+                <div class="input-group input-group-lg">
+                    <input type="text" id="boardRoomInput" class="form-control text-uppercase" placeholder="Наприклад, 123456" autocomplete="off" aria-describedby="connectHelp">
+                    <button id="connectBoardBtn" class="btn btn-success px-4" type="button">Підключитися</button>
+                </div>
+                <div id="connectHelp" class="form-text">Можна дивитися за грою або приєднатися як гравець.</div>
+                <div class="form-check form-switch d-flex align-items-center gap-3 mt-4 p-3 bg-primary bg-opacity-10 border border-primary border-opacity-50 rounded-3">
+                    <input type="checkbox" id="connectAsPlayer" class="form-check-input fs-4 flex-shrink-0 m-0">
+                    <label for="connectAsPlayer" class="form-check-label fs-5 fw-semibold text-info mb-0">
+                        Приєднатися як гравець
+                    </label>
+                </div>
             </div>
         </div>
-    </div>
-</div>
+    </section>
 
-<audio id="buzzAudio" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" preload="auto"></audio>
+    <!-- Main game board section -->
+    <section id="mainBoardContainer" class="d-none" aria-label="Ігрове табло">
+        <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-3 mb-4">
+            <div class="badge rounded-pill text-bg-secondary fs-6 px-3 py-2">
+                Кімната <span id="displayRoomCode" class="font-monospace fw-bold ms-1"></span>
+            </div>
+        </div>
+
+        <div class="row g-4 align-items-stretch">
+            <div class="col-12 col-lg-5">
+                <section class="card h-100 bg-black border-secondary shadow-lg rounded-4 p-3 p-md-4 text-center" aria-label="Таймер раунду">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span class="text-uppercase small text-secondary fw-semibold">Час до завершення</span>
+                        <span id="roundStatus" class="badge rounded-pill text-bg-secondary px-3 py-2" role="status" aria-live="polite">Очікуємо старту</span>
+                    </div>
+                    <div class="flex-grow-1 d-flex flex-column justify-content-center py-3">
+                        <div id="timerDisplay" class="display-1 fw-bold font-monospace text-danger lh-1" aria-live="off">00</div>
+                        <span class="text-secondary mt-2">секунд</span>
+                    </div>
+                    <div id="winnerBanner" class="alert alert-warning fs-5 fw-semibold mb-0 d-none" role="status" aria-live="assertive">
+                        Першим натиснув: <br>
+                        <span id="winnerName" class="fw-bold text-uppercase"></span>
+                    </div>
+                </section>
+            </div>
+
+            <div class="col-12 col-lg-7">
+                <section class="card h-100 bg-body-tertiary border-secondary shadow" aria-labelledby="playersHeading">
+                    <div class="card-header bg-black border-secondary d-flex justify-content-between align-items-center py-3">
+                        <h2 id="playersHeading" class="h5 fw-bold mb-0">Гравці в мережі</h2>
+                        <span class="badge rounded-pill text-bg-primary fs-6" aria-label="Кількість гравців"><span id="playerCount">0</span></span>
+                    </div>
+                    <ul id="playerList" class="list-group list-group-flush fs-5">
+                        <li class="list-group-item bg-transparent text-secondary py-4 text-center">Очікуємо на гравців...</li>
+                    </ul>
+                    <div class="card-footer bg-transparent border-secondary text-secondary small">Список оновлюється автоматично</div>
+                </section>
+            </div>
+        </div>
+    </section>
+</main>
+
+<!-- Gamesound -->
+<audio id="buzzAudio" data-sound-options="{{ sound_options | tojson | forceescape }}" src="{{ sound_options[default_sound_id].url }}" preload="auto"></audio>
+
 {% endblock %}

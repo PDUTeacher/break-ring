@@ -1,26 +1,74 @@
 {% extends 'base.html' %}
 {% block title %}Панель Адміністратора{% endblock %}
 {% block content %}
-<div class="text-center mb-4">
-    <button id="createGameBtn" class="btn btn-primary btn-lg">Створити нову сесію гри</button>
+<header class="text-center mb-4 mb-md-5">
+    <h1 class="display-6 fw-bold mb-2">Панель адміністратора</h1>
+    <p class="text-secondary mb-0">Створюйте гру та керуйте раундами</p>
+</header>
+
+<div class="d-grid d-sm-flex justify-content-center mb-4">
+    <button id="createGameBtn" class="btn btn-primary btn-lg px-4{% if room_code %} d-none{% endif %}">Створити нову сесію гри</button>
 </div>
 
-<div id="adminControls" class="d-none">
-    <div class="card bg-secondary text-white p-4 mb-4">
-        <h2 class="mb-3">Керування сесією: <span id="currentRoomCode" class="text-warning"></span></h2>
-        <div class="d-flex gap-3 align-items-center mb-3">
-            <label for="durationInput" class="form-label mb-0 fs-5">Таймер (сек):</label>
-            <input type="number" id="durationInput" class="form-control form-control-lg w-25" value="30" min="5" max="120">
-            <button id="startBtn" class="btn btn-success btn-lg">СТАРТ</button>
-            <button id="continueBtn" class="btn btn-danger btn-lg">ПРОДОВЖИТИ</button>            
-            <button id="resetBtn" class="btn btn-warning btn-lg text-dark">СКИНИТИ СТАН</button>
+<div id="adminControls" class="{% if not room_code %}d-none{% endif %}">
+    <div class="row justify-content-center g-4">
+        <div class="col-12 col-xl-10">
+            <section class="card bg-secondary text-white border-0 shadow p-3 p-md-4 mb-4">
+                <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2 mb-4">
+                    <h2 class="h3 mb-0">Керування сесією</h2>
+                    <span class="badge bg-dark fs-5 px-3 py-2">Кімната: <span id="currentRoomCode" class="text-warning">{{ room_code or '' }}</span></span>
+                </div>
+
+                <div class="row g-3 align-items-end">
+                    <div class="col-12 col-md-4 col-lg-3">
+                        <label for="durationInput" class="form-label">Тривалість раунду (сек)</label>
+                        <input type="number" id="durationInput" class="form-control form-control-lg" value="30" min="5" max="120">
+                        <div class="form-text text-light-emphasis mt-2">Залишилося: <span id="roundCountdown" class="font-monospace fw-bold">00</span> сек</div>
+                    </div>
+                    <div class="col-12 col-md-8 col-lg-9">
+                        <div class="d-grid d-sm-flex flex-wrap gap-2 p-2 p-md-3 bg-dark rounded-3" role="group" aria-label="Керування раундом">
+                            <button id="startBtn" class="btn btn-success btn-lg flex-fill">СТАРТ</button>
+                            <button id="continueBtn" class="btn btn-danger btn-lg flex-fill" disabled>ПРОДОВЖИТИ</button>
+                            <button id="resetBtn" class="btn btn-warning btn-lg text-dark flex-fill" disabled>СКИНУТИ СТАН</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="card bg-secondary text-white border-0 shadow p-3 p-md-4">
+                <h2 class="h3 mb-3">Гравці у кімнаті</h2>
+                <ul id="adminPlayerList" class="list-group list-group-flush fs-5">
+                </ul>
+            </section>
         </div>
     </div>
-
-    <div class="card bg-secondary text-white p-4">
-        <h2>Гравці у кімнаті</h2>
-        <ul id="adminPlayerList" class="list-group list-group-flush fs-5 mt-2">
-        </ul>
-    </div>
+    <section class="card bg-secondary text-white border-0 shadow p-3 p-md-4 mt-4" aria-labelledby="soundSettingsHeading">
+        <div class="mb-3">
+            <h2 id="soundSettingsHeading" class="h3 mb-1">Звук перемоги</h2>
+            <p class="text-light-emphasis mb-0">Виберіть сигнал, який відтворюватиметься на ігровому табло.</p>
+        </div>
+        <fieldset>
+            <legend class="fs-6">Доступні сигнали</legend>
+            <div class="row g-2">
+                {% for sound_id, sound in sound_options.items() %}
+                <div class="col-12 col-sm-6 col-lg-4">
+                    <div class="form-check p-3 ps-5 h-100 bg-dark rounded-3">
+                        <input class="form-check-input game-sound-option" type="radio" name="gameSound" id="sound-{{ sound_id }}" value="{{ sound_id }}" data-sound-url="{{ sound.url }}" {% if sound_id == default_sound_id %}checked{% endif %}>
+                        <label class="form-check-label fw-semibold" for="sound-{{ sound_id }}">{{ sound.label }}</label>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </fieldset>
+        <div class="mt-4">
+            <label for="soundPreview" class="form-label fw-semibold">Прослухати вибраний звук</label>
+            <audio id="soundPreview" class="w-100" controls preload="none" src="{{ sound_options[default_sound_id].url }}">
+                Ваш браузер не підтримує відтворення аудіо.
+            </audio>
+            <div id="soundSelectionStatus" class="form-text text-light-emphasis" role="status" aria-live="polite">
+                {% if room_code %}Вибраний звук буде застосовано до цієї кімнати.{% else %}Вибір буде застосовано після створення кімнати.{% endif %}
+            </div>
+        </div>
+    </section>
 </div>
 {% endblock %}
